@@ -402,14 +402,15 @@ function renderProjects() {
         return `
             <div class="project-item" data-id="${project.id}">
                 <div class="project-header">
-                    <span class="project-title">${project.name}</span>
+                    <div class="project-institution">
+                        <i class="fas fa-building"></i>
+                        ${project.institution}
+                    </div>
                     <button class="delete-btn" onclick="deleteProject('${project.id}')">
                         <i class="fas fa-trash"></i> Eliminar
                     </button>
                 </div>
-                <div class="project-institution">
-                    <i class="fas fa-building"></i> ${project.institution}
-                </div>
+                <div class="project-title">${project.name}</div>
                 <div class="project-description">${project.description}</div>
                 <div class="project-meta">
                     <span class="project-category" style="background: ${color}20; color: ${color};">
