@@ -534,15 +534,19 @@
                             </label>
                             <select id="category" required>
                                 <option value="">Selecciona una categoría</option>
-                                <option value="Educación">Educación</option>
-                                <option value="Salud">Salud</option>
-                                <option value="Medio Ambiente">Medio Ambiente</option>
-                                <option value="Infraestructura">Infraestructura</option>
-                                <option value="Desarrollo Social">Desarrollo Social</option>
-                                <option value="Tecnología">Tecnología</option>
-                                <option value="Cultura">Cultura</option>
-                                <option value="Agricultura">Agricultura</option>
-                                <option value="Otro">Otro</option>
+                                <option value="Reciclaje y manejo de residuos">Reciclaje y manejo de residuos</option>
+                                <option value="Huerto escolar o agricultura sostenible">Huerto escolar o agricultura sostenible</option>
+                                <option value="Proyecto pecuario sostenible">Proyecto pecuario sostenible</option>
+                                <option value="Educación, comunicación y/o sensibilización ambiental">Educación, comunicación y/o sensibilización ambiental</option>
+                                <option value="Conservación de recursos naturales">Conservación de recursos naturales</option>
+                                <option value="Tecnología para la sostenibilidad">Tecnología para la sostenibilidad</option>
+                                <option value="Infraestructura ecológica">Infraestructura ecológica</option>
+                                <option value="Proyecto comunitario o de participación ciudadana">Proyecto comunitario o de participación ciudadana</option>
+                                <option value="Emprendimiento o economía circular">Emprendimiento o economía circular</option>
+                                <option value="Salud y bienestar">Salud y bienestar</option>
+                                <option value="Agua y saneamiento">Agua y saneamiento</option>
+                                <option value="Cambio climático y mitigación">Cambio climático y mitigación</option>
+                                <option value="Otra">Otra (especificar en descripción)</option>
                             </select>
                         </div>
 
@@ -551,6 +555,20 @@
                                 <i class="fas fa-align-left"></i> Descripción
                             </label>
                             <textarea id="description" rows="4" required placeholder="Describe brevemente el proyecto"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="supporting-institutions">
+                                <i class="fas fa-hands-helping"></i> Instituciones que Apoyan
+                            </label>
+                            <textarea id="supporting-institutions" rows="3" required placeholder="¿Qué instituciones, organizaciones o grupos apoyan o participan en la iniciativa que realizan en su colegio? (Coloca los nombres completos y detalla cómo se da el apoyo)"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="potential-collaborators">
+                                <i class="fas fa-network-wired"></i> Potenciales Colaboradores
+                            </label>
+                            <textarea id="potential-collaborators" rows="3" required placeholder="¿Qué instituciones, organizaciones o grupos conocen ustedes (a nivel local o nacional) que podrían apoyar o colaborar en iniciativas de educación para el desarrollo sostenible? (Por ejemplo: clubes ecológicos, asociaciones de reciclaje, asociaciones comunitarias, ONG, etc.) - Coloquen todas las que conocen."></textarea>
                         </div>
 
                         <button type="submit" class="btn" id="submit-btn">
@@ -586,7 +604,15 @@
 
     <!-- Toast para notificaciones -->
     <div id="toast" class="toast"></div>
-
+    <!-- Footer con derechos reservados -->
+    <footer style="text-align: center; padding: 20px; color: white; margin-top: 40px;">
+        <p style="margin: 0; font-size: 0.9rem;">
+            <i class="fas fa-copyright"></i> 2025 FONAG - Fondo para la Protección del Agua
+        </p>
+        <p style="margin: 5px 0 0 0; font-size: 0.85rem; opacity: 0.8;">
+            Todos los derechos reservados
+        </p>
+    </footer>
     <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     

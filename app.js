@@ -28,15 +28,19 @@ let isOnline = false;
 
 // Colores para categorías
 const categoryColors = {
-    'Educación': '#4CAF50',
-    'Salud': '#F44336',
-    'Medio Ambiente': '#8BC34A',
-    'Infraestructura': '#FF9800',
-    'Desarrollo Social': '#2196F3',
-    'Tecnología': '#9C27B0',
-    'Cultura': '#795548',
-    'Agricultura': '#CDDC39',
-    'Otro': '#607D8B'
+    'Reciclaje y manejo de residuos': '#4CAF50',
+    'Huerto escolar o agricultura sostenible': '#8BC34A',
+    'Proyecto pecuario sostenible': '#795548',
+    'Educación, comunicación y/o sensibilización ambiental': '#2196F3',
+    'Conservación de recursos naturales': '#009688',
+    'Tecnología para la sostenibilidad': '#9C27B0',
+    'Infraestructura ecológica': '#FF9800',
+    'Proyecto comunitario o de participación ciudadana': '#3F51B5',
+    'Emprendimiento o economía circular': '#00BCD4',
+    'Salud y bienestar': '#F44336',
+    'Agua y saneamiento': '#03A9F4',
+    'Cambio climático y mitigación': '#FFC107',
+    'Otra': '#607D8B'
 };
 
 // ====================================
@@ -281,7 +285,7 @@ function addMarkerToMap(project) {
     }).addTo(map);
     
     const popupContent = `
-        <div style="min-width: 200px;">
+        <div style="min-width: 250px; max-width: 350px;">
             <h3 style="margin: 0 0 10px 0; color: ${color};">${project.name}</h3>
             <p style="margin: 5px 0; font-size: 0.9em;">
                 <strong>Institución:</strong> ${project.institution}
@@ -290,8 +294,16 @@ function addMarkerToMap(project) {
                 <strong>Categoría:</strong> ${project.category}
             </p>
             <p style="margin: 10px 0; font-size: 0.9em;">
-                ${project.description}
+                <strong>Descripción:</strong> ${project.description}
             </p>
+            ${project.supportingInstitutions ? `
+            <p style="margin: 10px 0; font-size: 0.9em; border-top: 1px solid #eee; padding-top: 10px;">
+                <strong>Instituciones de apoyo:</strong> ${project.supportingInstitutions}
+            </p>` : ''}
+            ${project.potentialCollaborators ? `
+            <p style="margin: 10px 0; font-size: 0.9em;">
+                <strong>Potenciales colaboradores:</strong> ${project.potentialCollaborators}
+            </p>` : ''}
             <p style="margin: 5px 0; font-size: 0.8em; color: #666;">
                 <i class="fas fa-calendar"></i> ${project.createdAt ? formatDate(project.createdAt) : 'Recién añadido'}
             </p>
@@ -398,20 +410,32 @@ function renderProjects() {
     }
     
     container.innerHTML = filtered.map(project => {
-        const color = categoryColors[project.category] || categoryColors['Otro'];
+        const color = categoryColors[project.category] || categoryColors['Otra'];
+        
+        // Truncar texto largo para la vista de lista
+        const truncateText = (text, maxLength = 150) => {
+            if (!text) return '';
+            return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+        };
+        
         return `
             <div class="project-item" data-id="${project.id}">
                 <div class="project-header">
-                    <div class="project-institution">
-                        <i class="fas fa-building"></i>
-                        ${project.institution}
-                    </div>
+                    <span class="project-title">${project.name}</span>
                     <button class="delete-btn" onclick="deleteProject('${project.id}')">
                         <i class="fas fa-trash"></i> Eliminar
                     </button>
                 </div>
-                <div class="project-title">${project.name}</div>
-                <div class="project-description">${project.description}</div>
+                <div class="project-institution">
+                    <i class="fas fa-building"></i> ${project.institution}
+                </div>
+                <div class="project-description">${truncateText(project.description)}</div>
+                ${project.supportingInstitutions ? `
+                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e0e0e0;">
+                    <small style="color: #666;">
+                        <strong>Apoyo:</strong> ${truncateText(project.supportingInstitutions, 100)}
+                    </small>
+                </div>` : ''}
                 <div class="project-meta">
                     <span class="project-category" style="background: ${color}20; color: ${color};">
                         ${project.category}
@@ -422,7 +446,7 @@ function renderProjects() {
                 </div>
             </div>
         `;
-    }).join('');
+    }).join('');    
     
     // Añadir eventos de hover
     container.querySelectorAll('.project-item').forEach(item => {
@@ -468,6 +492,8 @@ async function addProject(e) {
         name: document.getElementById('project-name').value.trim(),
         category: document.getElementById('category').value,
         description: document.getElementById('description').value.trim(),
+        supportingInstitutions: document.getElementById('supporting-institutions').value.trim(),
+        potentialCollaborators: document.getElementById('potential-collaborators').value.trim(),
         lat: tempLocation.lat,
         lng: tempLocation.lng
     };
@@ -520,16 +546,23 @@ function exportData() {
         return;
     }
     
-    // Preparar datos para exportación
+    // Preparar datos para exportación con todos los campos
     const exportData = projects.map(p => ({
-        ...p,
-        createdAt: p.createdAt ? formatDate(p.createdAt) : 'N/A'
+        institucion: p.institution,
+        nombreProyecto: p.name,
+        categoria: p.category,
+        descripcion: p.description,
+        institucionesApoyo: p.supportingInstitutions || '',
+        potencialesColaboradores: p.potentialCollaborators || '',
+        latitud: p.lat,
+        longitud: p.lng,
+        fechaCreacion: p.createdAt ? formatDate(p.createdAt) : 'N/A'
     }));
     
     const dataStr = JSON.stringify(exportData, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
     
-    const exportFileDefaultName = `proyectos_ecuador_${new Date().toISOString().split('T')[0]}.json`;
+    const exportFileDefaultName = `proyectos_fonag_ecuador_${new Date().toISOString().split('T')[0]}.json`;
     
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
