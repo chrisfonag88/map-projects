@@ -4,7 +4,7 @@
 
 // Obtener referencia a Firestore
 const db = firebase.firestore();
-
+const auth = firebase.auth();
 // Colección de proyectos
 const projectsCollection = db.collection('projects');
 
@@ -25,7 +25,8 @@ let searchTerm = '';
 
 // Estado de conexión
 let isOnline = false;
-
+let currentUser = null; 
+let isAdmin = false;
 // Colores para categorías
 const categoryColors = {
     'Reciclaje y manejo de residuos': '#4CAF50',
@@ -417,14 +418,17 @@ function renderProjects() {
             if (!text) return '';
             return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
         };
+    const deleteButton = isAdmin ? `
+            <button class="delete-btn" onclick="deleteProject('${project.id}')" style="display: inline-block;">
+                <i class="fas fa-trash"></i> Eliminar
+            </button>
+        ` : '';
         
         return `
             <div class="project-item" data-id="${project.id}">
                 <div class="project-header">
                     <span class="project-title">${project.name}</span>
-                    <button class="delete-btn" onclick="deleteProject('${project.id}')">
-                        <i class="fas fa-trash"></i> Eliminar
-                    </button>
+                    ${deleteButton}
                 </div>
                 <div class="project-institution">
                     <i class="fas fa-building"></i> ${project.institution}
@@ -524,6 +528,11 @@ async function addProject(e) {
 
 // Eliminar proyecto
 async function deleteProject(id) {
+    if (!isAdmin) {
+        showToast('Solo los administradores pueden eliminar proyectos', 'error');
+        return;
+    }
+    
     if (!confirm('¿Estás seguro de eliminar este proyecto?')) {
         return;
     }
@@ -540,38 +549,231 @@ async function deleteProject(id) {
 // FUNCIONES DE EXPORTACIÓN
 // ====================================
 
-function exportData() {
+
+// Exportar a Excel
+function exportToExcel() {
     if (projects.length === 0) {
         showToast('No hay proyectos para exportar', 'warning');
         return;
     }
     
-    // Preparar datos para exportación con todos los campos
-    const exportData = projects.map(p => ({
-        institucion: p.institution,
-        nombreProyecto: p.name,
-        categoria: p.category,
-        descripcion: p.description,
-        institucionesApoyo: p.supportingInstitutions || '',
-        potencialesColaboradores: p.potentialCollaborators || '',
-        latitud: p.lat,
-        longitud: p.lng,
-        fechaCreacion: p.createdAt ? formatDate(p.createdAt) : 'N/A'
+    // Preparar datos para Excel con formato legible
+    const excelData = projects.map((p, index) => ({
+        'No.': index + 1,
+        'Institución': p.institution || '',
+        'Nombre del Proyecto': p.name || '',
+        'Categoría': p.category || '',
+        'Descripción': p.description || '',
+        'Instituciones que Apoyan': p.supportingInstitutions || 'No especificado',
+        'Potenciales Colaboradores': p.potentialCollaborators || 'No especificado',
+        'Latitud': p.lat ? p.lat.toFixed(6) : '',
+        'Longitud': p.lng ? p.lng.toFixed(6) : '',
+        'Fecha de Registro': p.createdAt ? formatDate(p.createdAt) : new Date().toLocaleDateString('es-EC')
     }));
     
-    const dataStr = JSON.stringify(exportData, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    // Crear libro de Excel
+    const wb = XLSX.utils.book_new();
     
-    const exportFileDefaultName = `proyectos_fonag_ecuador_${new Date().toISOString().split('T')[0]}.json`;
+    // Crear hoja de proyectos
+    const ws = XLSX.utils.json_to_sheet(excelData);
     
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
+    // Ajustar anchos de columna
+    const columnWidths = [
+        { wch: 5 },   // No.
+        { wch: 30 },  // Institución
+        { wch: 35 },  // Nombre del Proyecto
+        { wch: 30 },  // Categoría
+        { wch: 50 },  // Descripción
+        { wch: 40 },  // Instituciones que Apoyan
+        { wch: 40 },  // Potenciales Colaboradores
+        { wch: 12 },  // Latitud
+        { wch: 12 },  // Longitud
+        { wch: 20 }   // Fecha
+    ];
+    ws['!cols'] = columnWidths;
     
-    showToast('Datos exportados exitosamente', 'success');
+    // Añadir la hoja al libro
+    XLSX.utils.book_append_sheet(wb, ws, 'Proyectos');
+    
+    // Crear hoja de resumen
+    const summaryData = createSummaryData();
+    const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+    wsSummary['!cols'] = [{ wch: 30 }, { wch: 20 }];
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Resumen');
+    
+    // Crear hoja de estadísticas por categoría
+    const statsData = createCategoryStats();
+    const wsStats = XLSX.utils.json_to_sheet(statsData);
+    wsStats['!cols'] = [{ wch: 40 }, { wch: 15 }, { wch: 15 }];
+    XLSX.utils.book_append_sheet(wb, wsStats, 'Estadísticas');
+    
+    // Generar archivo
+    const fileName = `proyectos_fonag_ecuador_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    
+    showToast('Excel exportado exitosamente', 'success');
 }
 
+// Crear estadísticas por categoría
+function createCategoryStats() {
+    const categoryCount = {};
+    projects.forEach(p => {
+        categoryCount[p.category] = (categoryCount[p.category] || 0) + 1;
+    });
+    
+    return Object.entries(categoryCount)
+        .sort((a, b) => b[1] - a[1])
+        .map(([category, count]) => ({
+            'Categoría': category,
+            'Cantidad': count,
+            'Porcentaje': ((count / projects.length) * 100).toFixed(1) + '%'
+        }));
+}
+
+// Crear datos de resumen para Excel
+function createSummaryData() {
+    const institutions = new Set(projects.map(p => p.institution));
+    const categories = new Set(projects.map(p => p.category));
+    
+    return [
+        { 'Métrica': 'Total de Proyectos', 'Valor': projects.length },
+        { 'Métrica': 'Total de Instituciones', 'Valor': institutions.size },
+        { 'Métrica': 'Total de Categorías', 'Valor': categories.size },
+        { 'Métrica': 'Fecha de Exportación', 'Valor': new Date().toLocaleString('es-EC') },
+        { 'Métrica': 'Exportado por', 'Valor': 'Sistema FONAG 2025' }
+    ];
+}
+
+// ====================================
+// FUNCIONES DE AUTENTICACIÓN
+// ====================================
+
+// Verificar estado de autenticación
+auth.onAuthStateChanged((user) => {
+    if (user) {
+        currentUser = user;
+        isAdmin = true;
+        updateAuthUI(true);
+        document.body.classList.add('admin-mode');
+        showToast('Sesión de administrador activa', 'success');
+        renderProjects(); // Re-renderizar para mostrar botones de eliminar
+    } else {
+        currentUser = null;
+        isAdmin = false;
+        updateAuthUI(false);
+        document.body.classList.remove('admin-mode');
+        renderProjects(); // Re-renderizar para ocultar botones de eliminar
+    }
+});
+
+// Mostrar/ocultar modal de autenticación
+function toggleAuthModal() {
+    const modal = document.getElementById('auth-modal');
+    if (currentUser) {
+        // Si está logueado, preguntar si quiere cerrar sesión
+        if (confirm('¿Deseas cerrar la sesión de administrador?')) {
+            logout();
+        }
+    } else {
+        modal.classList.add('show');
+    }
+}
+
+// Cerrar modal
+function closeAuthModal() {
+    const modal = document.getElementById('auth-modal');
+    modal.classList.remove('show');
+    clearAuthForm();
+}
+
+// Limpiar formulario
+function clearAuthForm() {
+    document.getElementById('admin-email').value = '';
+    document.getElementById('admin-password').value = '';
+    document.getElementById('auth-error').style.display = 'none';
+    document.getElementById('auth-success').style.display = 'none';
+}
+
+// Manejar login
+document.getElementById('auth-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const email = document.getElementById('admin-email').value;
+    const password = document.getElementById('admin-password').value;
+    const errorDiv = document.getElementById('auth-error');
+    const successDiv = document.getElementById('auth-success');
+    
+    errorDiv.style.display = 'none';
+    successDiv.style.display = 'none';
+    
+    try {
+        // Intentar iniciar sesión
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        
+        successDiv.textContent = '✓ Sesión iniciada correctamente';
+        successDiv.style.display = 'block';
+        
+        setTimeout(() => {
+            closeAuthModal();
+        }, 1500);
+        
+    } catch (error) {
+        console.error('Error de autenticación:', error);
+        
+        // Mostrar mensaje de error según el tipo
+        let errorMessage = 'Error al iniciar sesión';
+        
+        switch(error.code) {
+            case 'auth/invalid-email':
+                errorMessage = 'Correo electrónico inválido';
+                break;
+            case 'auth/user-not-found':
+                errorMessage = 'Usuario no encontrado';
+                break;
+            case 'auth/wrong-password':
+                errorMessage = 'Contraseña incorrecta';
+                break;
+            case 'auth/invalid-credential':
+                errorMessage = 'Credenciales inválidas';
+                break;
+            case 'auth/too-many-requests':
+                errorMessage = 'Demasiados intentos. Intenta más tarde';
+                break;
+        }
+        
+        errorDiv.textContent = errorMessage;
+        errorDiv.style.display = 'block';
+    }
+});
+
+// Cerrar sesión
+async function logout() {
+    try {
+        await auth.signOut();
+        showToast('Sesión cerrada', 'success');
+        closeAuthModal();
+    } catch (error) {
+        console.error('Error al cerrar sesión:', error);
+        showToast('Error al cerrar sesión', 'error');
+    }
+}
+
+// Actualizar UI según estado de autenticación
+function updateAuthUI(isLoggedIn) {
+    const authButton = document.getElementById('auth-button');
+    const authButtonText = document.getElementById('auth-button-text');
+    const logoutBtn = document.getElementById('logout-btn');
+    
+    if (isLoggedIn) {
+        authButton.classList.add('logged-in');
+        authButtonText.textContent = 'Admin: Cerrar Sesión';
+        if (logoutBtn) logoutBtn.style.display = 'block';
+    } else {
+        authButton.classList.remove('logged-in');
+        authButtonText.textContent = 'Administrador';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+    }
+}
 // ====================================
 // INICIALIZACIÓN
 // ====================================
@@ -612,4 +814,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Hacer funciones globales para los botones
 window.deleteProject = deleteProject;
-window.exportData = exportData;
+window.exportToExcel = exportToExcel;
+window.toggleAuthModal = toggleAuthModal;
+window.closeAuthModal = closeAuthModal;
+window.logout = logout;
