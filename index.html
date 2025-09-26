@@ -679,7 +679,87 @@
         </div>
 
         <div class="content-wrapper">
-            <div id="map"></div>
+            <div id="map" style="position: relative;">
+                <button onclick="resetMap()" 
+                    title="Centrar mapa en Ecuador"
+                    style="
+                    position: absolute;
+                    top: 80px;
+                    right: 10px;
+                    z-index: 1000;
+                    background: white;
+                    border: 2px solid rgba(0,0,0,0.2);
+                    border-radius: 5px;
+                    padding: 10px;
+                    cursor: pointer;
+                    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+                    transition: all 0.3s;
+                    width: 40px;
+                    height: 40px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    "
+                    onmouseover="this.style.background='#667eea'; this.style.color='white';" 
+                    onmouseout="this.style.background='white'; this.style.color='black';">
+                        <i class="fas fa-compass" style="font-size: 18px;"></i>
+                </button>
+                
+                <!-- Botón de zoom in -->
+                <button onclick="zoomIn()" 
+                        title="Acercar"
+                        style="
+                    position: absolute;
+                    top: 130px;
+                    right: 10px;
+                    z-index: 1000;
+                    background: white;
+                    border: 2px solid rgba(0,0,0,0.2);
+                    border-radius: 5px 5px 0 0;
+                    padding: 10px;
+                    cursor: pointer;
+                    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+                    transition: all 0.3s;
+                    width: 40px;
+                    height: 40px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-bottom: 1px solid #ddd;
+                "
+                onmouseover="this.style.background='#667eea'; this.style.color='white';" 
+                onmouseout="this.style.background='white'; this.style.color='black';">
+                    <i class="fas fa-plus" style="font-size: 16px;"></i>
+                </button>
+                
+                <!-- Botón de zoom out -->
+                <button onclick="zoomOut()" 
+                        title="Alejar"
+                        style="
+                    position: absolute;
+                    top: 170px;
+                    right: 10px;
+                    z-index: 1000;
+                    background: white;
+                    border: 2px solid rgba(0,0,0,0.2);
+                    border-radius: 0 0 5px 5px;
+                    padding: 10px;
+                    cursor: pointer;
+                    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+                    transition: all 0.3s;
+                    width: 40px;
+                    height: 40px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-top: none;
+                "
+                onmouseover="this.style.background='#667eea'; this.style.color='white';" 
+                onmouseout="this.style.background='white'; this.style.color='black';">
+                    <i class="fas fa-minus" style="font-size: 16px;"></i>
+                </button>
+
+            </div>
             
             <div class="sidebar">
                 <div class="form-section">
@@ -688,6 +768,14 @@
                     <div id="location-status" class="location-status location-pending">
                         <i class="fas fa-map-pin"></i> Haz clic en el mapa para seleccionar ubicación
                     </div>
+
+                    <button type="button" 
+                            id="clear-location-btn"
+                            onclick="clearLocationSelection()"
+                            class="btn btn-danger" 
+                            style="width: 100%; margin-top: 10px; margin-bottom: 15px; display: none;">
+                        <i class="fas fa-times"></i> Quitar Ubicación Seleccionada
+                    </button>
 
                     <form id="project-form">
                         <div class="form-group">

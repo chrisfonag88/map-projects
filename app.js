@@ -245,24 +245,66 @@ async function deleteProjectFromFirebase(projectId) {
 
 // Inicializar mapa
 function initializeMap() {
-    map = L.map('map').setView([-1.8312, -78.1834], 7);
+    map = L.map('map',
+        { zoomControl: false }
+    ).setView([-1.8312, -78.1834], 7);
     
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
-    
-    // Evento de clic en el mapa
+
+    // Variables para controlar el arrastre
+    let isDragging = false;
+    let dragTimeout;
+
+    // Detectar cuando empieza el arrastre
+    map.on('dragstart', function() {
+        isDragging = true;
+    });
+
+    // Detectar cuando termina el arrastre
+    map.on('dragend', function() {
+        // Esperar un momento antes de permitir clicks nuevamente
+        setTimeout(() => {
+            isDragging = false;
+        }, 100);
+    });
+
+    // Evento de clic en el mapa - SOLO si no está arrastrando
     map.on('click', function(e) {
+        // Ignorar el click si estamos arrastrando el mapa
+        if (isDragging) {
+            return;
+        }
+        
+        // Verificar que el click no sea sobre un control o botón
+        if (e.originalEvent.target.closest('.leaflet-control') || 
+            e.originalEvent.target.closest('button')) {
+            return;
+        }
+        
+        // Remover marcador temporal anterior si existe
         if (tempMarker) {
             map.removeLayer(tempMarker);
         }
         
+        // Crear nuevo marcador temporal
         tempLocation = e.latlng;
         tempMarker = L.marker(tempLocation, { 
             icon: createColoredIcon('#FF5722', true) 
         }).addTo(map);
         
+        // Actualizar estado de ubicación
         updateLocationStatus(true);
+        
+        // Opcional: Mostrar confirmación visual
+        showToast('📍 Ubicación seleccionada', 'success');
+    });
+
+    // Prevenir la selección de marcadores al hacer click derecho
+    map.on('contextmenu', function(e) {
+        // No hacer nada en click derecho
+        return false;
     });
 }
 
@@ -338,6 +380,88 @@ function clearMarkers() {
     markers.forEach(marker => map.removeLayer(marker));
     markers = [];
 }
+
+// Función para limpiar la selección de ubicación
+function clearLocationSelection() {
+    if (tempMarker) {
+        map.removeLayer(tempMarker);
+        tempMarker = null;
+        tempLocation = null;
+        updateLocationStatus(false);
+        
+        // Ocultar botón de limpiar
+        document.getElementById('clear-location-btn').style.display = 'none';
+        
+        showToast('Ubicación eliminada', 'info');
+    }
+}
+
+// Modificar la función updateLocationStatus para mostrar/ocultar el botón
+function updateLocationStatus(selected) {
+    const status = document.getElementById('location-status');
+    const clearBtn = document.getElementById('clear-location-btn');
+    
+    if (selected) {
+        status.className = 'location-status location-selected';
+        status.innerHTML = '<i class="fas fa-check-circle"></i> Ubicación seleccionada';
+        // Mostrar botón de limpiar
+        if (clearBtn) clearBtn.style.display = 'block';
+    } else {
+        status.className = 'location-status location-pending';
+        status.innerHTML = '<i class="fas fa-map-pin"></i> Haz clic en el mapa para seleccionar ubicación';
+        // Ocultar botón de limpiar
+        if (clearBtn) clearBtn.style.display = 'none';
+    }
+}
+
+// Hacer la función global
+window.clearLocationSelection = clearLocationSelection;
+
+// ====================================
+// FUNCIONES DE CONTROL DEL MAPA
+// ====================================
+
+// Coordenadas y zoom inicial de Ecuador
+const ECUADOR_CENTER = {
+    lat: -1.8312,
+    lng: -78.1834,
+    zoom: 7
+};
+
+// Función para resetear/centrar el mapa
+function resetMap() {
+    // Animar el mapa de vuelta al centro de Ecuador
+    map.setView([ECUADOR_CENTER.lat, ECUADOR_CENTER.lng], ECUADOR_CENTER.zoom, {
+        animate: true,
+        duration: 1
+    });
+    
+}
+
+// Función para hacer zoom in
+function zoomIn() {
+    map.zoomIn();
+}
+
+// Función para hacer zoom out
+function zoomOut() {
+    map.zoomOut();
+}
+
+// Función adicional para centrar en todos los proyectos
+function fitAllProjects() {
+    if (markers.length > 0) {
+        const group = new L.featureGroup(markers);
+        map.fitBounds(group.getBounds().pad(0.1), {
+            animate: true,
+            duration: 1
+        });
+        showToast('Vista ajustada a todos los proyectos', 'success');
+    } else {
+        resetMap();
+    }
+}
+
 
 // ====================================
 // FUNCIONES DE INTERFAZ
@@ -818,3 +942,9 @@ window.exportToExcel = exportToExcel;
 window.toggleAuthModal = toggleAuthModal;
 window.closeAuthModal = closeAuthModal;
 window.logout = logout;
+window.resetMap = resetMap;
+window.zoomIn = zoomIn;
+window.zoomOut = zoomOut;
+window.fitAllProjects = fitAllProjects;
+window.clearLocationSelection = clearLocationSelection;
+
