@@ -333,12 +333,20 @@ function addMarkerToMap(project) {
             <p style="margin: 5px 0; font-size: 0.9em;">
                 <strong>Institución:</strong> ${project.institution}
             </p>
+            ${project.amieCode ? `
+            <p style="margin: 5px 0; font-size: 0.85em; color: #666;">
+                <strong> Código AMIE:</strong> ${project.amieCode}
+            </p>` : ''}
             <p style="margin: 5px 0; font-size: 0.9em;">
                 <strong>Categoría:</strong> ${project.category}
             </p>
             <p style="margin: 10px 0; font-size: 0.9em;">
                 <strong>Descripción:</strong> ${project.description}
             </p>
+            ${project.resultsImpacts ? `
+            <p style="margin: 10px 0; font-size: 0.9em; border-top: 1px solid #eee; padding-top: 10px;">
+                <strong>Resultados e Impactos:</strong> ${project.resultsImpacts}
+            </p>` : ''}
             ${project.supportingInstitutions ? `
             <p style="margin: 10px 0; font-size: 0.9em; border-top: 1px solid #eee; padding-top: 10px;">
                 <strong>Instituciones de apoyo:</strong> ${project.supportingInstitutions}
@@ -617,11 +625,13 @@ async function addProject(e) {
     
     const projectData = {
         institution: document.getElementById('institution').value.trim(),
+        amieCode: document.getElementById('amie-code').value.trim(),
         name: document.getElementById('project-name').value.trim(),
         category: document.getElementById('category').value,
         description: document.getElementById('description').value.trim(),
         supportingInstitutions: document.getElementById('supporting-institutions').value.trim(),
         potentialCollaborators: document.getElementById('potential-collaborators').value.trim(),
+        resultsImpacts: document.getElementById('results-impacts').value.trim(),
         lat: tempLocation.lat,
         lng: tempLocation.lng
     };
@@ -685,9 +695,11 @@ function exportToExcel() {
     const excelData = projects.map((p, index) => ({
         'No.': index + 1,
         'Institución': p.institution || '',
+        'Código AMIE': p.amieCode || 'No especificado',
         'Nombre del Proyecto': p.name || '',
         'Categoría': p.category || '',
         'Descripción': p.description || '',
+        'Resultados e Impactos': p.resultsImpacts || 'No especificado',
         'Instituciones que Apoyan': p.supportingInstitutions || 'No especificado',
         'Potenciales Colaboradores': p.potentialCollaborators || 'No especificado',
         'Latitud': p.lat ? p.lat.toFixed(6) : '',
@@ -705,14 +717,16 @@ function exportToExcel() {
     const columnWidths = [
         { wch: 5 },   // No.
         { wch: 30 },  // Institución
+        { wch: 15 },  // ⭐ Código AMIE
         { wch: 35 },  // Nombre del Proyecto
         { wch: 30 },  // Categoría
         { wch: 50 },  // Descripción
         { wch: 40 },  // Instituciones que Apoyan
         { wch: 40 },  // Potenciales Colaboradores
+        { wch: 50 },  // ⭐ Resultados e Impactos
         { wch: 12 },  // Latitud
         { wch: 12 },  // Longitud
-        { wch: 20 }   // Fecha
+        { wch: 20 }   // Fecha de Registro
     ];
     ws['!cols'] = columnWidths;
     
